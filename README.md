@@ -38,4 +38,4 @@ The sample lead is expected to score 100 / Hot / High confidence. The test suite
 
 ## AI boundary
 
-The deterministic engine in `src/scoring.js` owns the score, classification, factors, and action. The browser calls `/api/score`, so the UI and tests use the same source of truth. The `/api/explanation` endpoint optionally calls an OpenAI-compatible chat-completions API only to rewrite the structured result as a short explanation. Set `OPENAI_API_KEY` (and optionally `OPENAI_API_URL` or `OPENAI_MODEL`) to enable it. Without a key, a deterministic explanation is returned.
+The deterministic engine in `src/scoring.js` owns the score, classification, factors, and action. The browser calls `/api/score`, so the UI and tests use the same source of truth. The `/api/explanation` endpoint optionally calls an OpenAI-compatible chat-completions API only to rewrite the structured result as a short explanation. Set `GEMINI_API_KEY` in a local `.env` file to enable Gemini explanations. `GEMINI_MODEL` is optional and defaults to `gemini-2.5-flash`. The `.env` file is ignored by Git and is never sent to the browser. Without a key, a deterministic explanation is returned.
