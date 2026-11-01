@@ -1,6 +1,9 @@
 const form = document.querySelector("#lead-form");
 const results = document.querySelector("#results");
 const sampleButton = document.querySelector("#sample-button");
+const submitButton = document.querySelector("#submit-button");
+const fieldCount = document.querySelector("#field-count");
+const scoredFields = ["companyName", "website", "jobTitle", "industry", "companyLocation", "companySize", "leadSource", "requirement", "email", "phone"];
 
 const sampleLead = {
   name: "Rahul Sharma",
@@ -16,22 +19,20 @@ const sampleLead = {
   phone: "+91 9876543210"
 };
 
-function localScore(lead) {
-  const fields = ["companyName", "website", "jobTitle", "industry", "companyLocation", "companySize", "leadSource", "requirement", "email", "phone"];
-  const filled = fields.filter((field) => lead[field]?.trim()).length;
-  const completeness = Math.round((filled / fields.length) * 20);
-  const senior = /founder|co-founder|ceo|chief|owner|director|vp|vice president|head|manager/i.test(lead.jobTitle);
-  const source = /website|demo|contact sales|referral/i.test(lead.leadSource);
-  const size = { "1-10 Employees": 2, "11-50 Employees": 5, "50-100 Employees": 10, "101-500 Employees": 10, "500+ Employees": 10 }[lead.companySize] || 0;
-  let score = completeness + (lead.requirement ? 20 : 0) + (source ? 15 : lead.leadSource ? 8 : 0) + (senior ? 20 : lead.jobTitle ? 10 : 0) + size + (lead.email ? 3 : 0) + (lead.phone ? 2 : 0) + (lead.website ? 5 : 0) + (lead.industry && lead.companyLocation ? 5 : 0);
-  score = Math.min(100, score);
-  const classification = score >= 75 ? "Hot" : score >= 50 ? "Warm" : "Cold";
-  const confidence = filled >= 9 ? "High" : filled >= 6 ? "Medium" : "Low";
-  return { score, classification, confidence, filled, completeness, senior, source, size };
-}
-
-function render(lead) {
-  const result = localScore(lead);
+async function render(lead) {
+  submitButton.disabled = true;
+  submitButton.querySelector("span").textContent = "Analysing lead…";
+  let result;
+  try {
+    const response = await fetch("/api/score", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lead }) });
+    if (!response.ok) throw new Error("Unable to calculate score");
+    result = await response.json();
+  } catch (error) {
+    results.innerHTML = `<div class="empty-icon">!</div><h2>Could not score this lead</h2><p>${error.message}. Check that the app server is running and try again.</p>`;
+    submitButton.disabled = false;
+    submitButton.querySelector("span").textContent = "Calculate lead score";
+    return;
+  }
   const quality = result.classification === "Hot"
     ? "Strong fit with clear buying intent and enough detail for a timely sales conversation."
     : result.classification === "Warm"
@@ -44,21 +45,8 @@ function render(lead) {
       : "Send a useful educational follow-up and request the missing qualification details.";
   const positives = [];
   const negatives = [];
-  if (result.filled === 10) positives.push("Complete contact and qualification profile (+20)");
-  else negatives.push(`${10 - result.filled} qualification field${10 - result.filled === 1 ? "" : "s"} missing`);
-  if (lead.requirement) positives.push("Specific product requirement is stated (+20)");
-  else negatives.push("No stated requirement");
-  if (result.source) positives.push("High-intent lead source (+15)");
-  if (result.senior) positives.push("Likely decision-maker role (+20)");
-  if (result.size) positives.push("Company size supports sales potential");
-  if (lead.website) positives.push("Company website provided");
-  if (lead.industry && lead.companyLocation) positives.push("Industry and location context provided");
-  if (lead.email) positives.push("Reachable email provided");
-  if (lead.phone) positives.push("Phone number provided");
-  if (!lead.email) negatives.push("Email is missing");
-  if (!lead.phone) negatives.push("Phone number is missing");
-  if (!lead.website) negatives.push("Company website is missing");
-  if (!lead.industry || !lead.companyLocation) negatives.push("Industry or location context is incomplete");
+  if (result.positiveFactors.length) positives.push(...result.positiveFactors);
+  if (result.negativeFactors.length) negatives.push(...result.negativeFactors);
   results.className = "card results-card";
   results.innerHTML = `<div class="score-header"><div><div class="score-number">${result.score}<small>/100</small></div><div class="muted">Confidence: ${result.confidence}</div></div><span class="badge ${result.classification.toLowerCase()}">${result.classification} lead</span></div>
     <div class="meter"><i style="width:${result.score}%"></i></div>
@@ -66,8 +54,10 @@ function render(lead) {
     <div class="result-section"><h3>Positive signals</h3><ul class="factor-list">${positives.map((item) => `<li>${item}</li>`).join("") || "<li>None yet</li>"}</ul></div>
     <div class="result-section"><h3>Watch-outs</h3><ul class="factor-list negative">${negatives.map((item) => `<li>${item}</li>`).join("") || "<li>None identified</li>"}</ul></div>
     <div class="result-section"><h3>Recommended next action</h3><div class="next-action">${action}</div></div>
-    <div class="result-section"><h3>Scoring explanation</h3><p>Profile completeness (${result.completeness}/20), requirement and intent, decision authority, company potential, and contactability combine into this deterministic score. The narrative can be polished by an LLM without changing these numbers.</p></div>`;
+    <div class="result-section"><h3>Scoring explanation</h3><p>${result.scoringExplanation}</p></div>`;
   requestExplanation(lead, { ...result, qualityAssessment: quality, recommendedNextAction: action, positiveFactors: positives, negativeFactors: negatives });
+  submitButton.disabled = false;
+  submitButton.querySelector("span").textContent = "Recalculate score";
 }
 
 async function requestExplanation(lead, result) {
@@ -86,6 +76,12 @@ function readForm() {
   return Object.fromEntries(new FormData(form).entries());
 }
 
+function updateFieldCount() {
+  const lead = readForm();
+  const count = scoredFields.filter((field) => lead[field]?.trim()).length;
+  fieldCount.textContent = `${count} / 10 fields`;
+}
+
 function fillForm(lead) {
   Object.entries(lead).forEach(([name, value]) => {
     const field = form.elements[name];
@@ -97,7 +93,10 @@ form.addEventListener("submit", (event) => {
   event.preventDefault();
   render(readForm());
 });
+form.addEventListener("input", updateFieldCount);
+form.addEventListener("change", updateFieldCount);
 sampleButton.addEventListener("click", () => {
   fillForm(sampleLead);
   render(sampleLead);
+  updateFieldCount();
 });

@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+import { scoreLead } from "./src/scoring.js";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const publicDir = join(root, "public");
@@ -73,6 +74,22 @@ async function serveStatic(request, response) {
 }
 
 const server = createServer(async (request, response) => {
+  if (request.method === "POST" && request.url === "/api/score") {
+    try {
+      let raw = "";
+      for await (const chunk of request) raw += chunk;
+      const { lead } = JSON.parse(raw);
+      if (!lead || typeof lead !== "object" || Array.isArray(lead)) {
+        throw new Error("A lead object is required");
+      }
+      response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+      response.end(JSON.stringify(scoreLead(lead)));
+    } catch (error) {
+      response.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+      response.end(JSON.stringify({ error: error.message }));
+    }
+    return;
+  }
   if (request.method === "POST" && request.url === "/api/explanation") {
     try {
       let raw = "";

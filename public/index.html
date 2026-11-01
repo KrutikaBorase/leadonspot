@@ -23,7 +23,7 @@
       <section class="workspace">
         <form id="lead-form" class="card form-card">
           <div class="card-heading"><div><p class="eyebrow">Step 01</p><h2>Lead details</h2></div><button id="sample-button" class="text-button" type="button">Load sample lead</button></div>
-          <p class="muted">Add what you know. Missing fields reduce confidence, never create a made-up score.</p>
+          <div class="form-intro"><p class="muted">Add what you know. Missing fields reduce confidence, never create a made-up score.</p><span id="field-count">0 / 10 fields</span></div>
           <div class="form-grid">
             <label>Full name<input name="name" placeholder="e.g. Rahul Sharma"></label>
             <label>Company name<input name="companyName" placeholder="e.g. ABC Technologies"></label>
@@ -37,7 +37,7 @@
             <label>Email<input name="email" type="email" placeholder="rahul@example.com"></label>
             <label>Phone<input name="phone" type="tel" placeholder="+91 9876543210"></label>
           </div>
-          <button class="primary-button" type="submit"><span>Calculate lead score</span><span>→</span></button>
+          <button id="submit-button" class="primary-button" type="submit"><span>Calculate lead score</span><span>→</span></button>
         </form>
         <aside id="results" class="card results-card empty-state">
           <div class="empty-icon">✦</div><h2>Your score will appear here</h2><p>Complete the lead details and we’ll show the score, reasoning, and a practical next step.</p>
@@ -49,7 +49,7 @@
           <article><span>20</span><h3>Profile completeness</h3><p>Rewards usable contact and company context.</p></article>
           <article><span>35</span><h3>Intent & requirement</h3><p>Prioritises a stated need and high-intent sources.</p></article>
           <article><span>20</span><h3>Decision authority</h3><p>Recognises founders and senior buying roles.</p></article>
-          <article><span>15</span><h3>Potential & reachability</h3><p>Includes company size, email, and phone.</p></article>
+          <article><span>20</span><h3>Context & reachability</h3><p>Includes company potential, website, location, email, and phone.</p></article>
         </div>
       </section>
       <footer><span>LeadOnSpot</span><span>Deterministic score · AI-assisted explanation</span></footer>
