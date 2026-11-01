@@ -1,24 +1,42 @@
 # LeadOnSpot
 
-LeadOnSpot is an explainable lead qualification tool. It accepts the fields from the assessment brief and returns a deterministic 0–100 score, a Hot/Warm/Cold classification, confidence, factors, and a next action.
+LeadOnSpot is an explainable lead qualification tool for sales teams. It accepts the lead fields from the assessment brief and returns a deterministic score, classification, confidence, evidence, and a recommended next action. Gemini adds a concise natural-language analysis without controlling the score.
 
-## Run it
+## Run the application
+
+Requirements: Node.js 18 or newer.
 
 ```bash
+npm install     # no runtime packages are required; this is safe and optional
 npm start
 ```
 
-Open <http://localhost:3000>. The project has no runtime dependencies.
+Open <http://localhost:3000>.
 
-Run the scoring tests with:
+Run the automated test cases:
 
 ```bash
 npm test
 ```
 
+Load the sample lead in the UI to reproduce the assessment example. Use **Clear form** to test incomplete data handling.
+
+## Project structure
+
+| Path | Purpose |
+| --- | --- |
+| `src/scoring.js` | Pure, deterministic scoring engine |
+| `server.js` | Static server, `/api/score`, and optional Gemini explanation endpoint |
+| `public/index.html` | Accessible lead-entry interface |
+| `public/app.js` | Form state, API calls, and result rendering |
+| `public/styles.css` | Responsive visual design |
+| `test/scoring.test.js` | Reproducible scoring test cases |
+| `docs/SCORING-METHODOLOGY.md` | Full weights, rules, and thresholds |
+| `docs/SAMPLE-TEST-CASES.md` | Assessment-ready examples and expected outputs |
+
 ## Scoring methodology
 
-The score is intentionally computed in code rather than delegated to an LLM:
+The score is intentionally computed in code rather than delegated to an LLM. Every score is the sum of transparent weighted signals and is capped to the range 0–100. The complete methodology is documented in [docs/SCORING-METHODOLOGY.md](docs/SCORING-METHODOLOGY.md).
 
 | Signal | Maximum |
 | --- | ---: |
@@ -27,15 +45,22 @@ The score is intentionally computed in code rather than delegated to an LLM:
 | Lead source intent | 15 |
 | Decision-maker seniority | 20 |
 | Company size | 10 |
-| Email and phone | 5 |
 | Company website | 5 |
 | Industry and location context | 5 |
+| Email and phone | 5 |
 | **Total** | **100** |
 
-The score is capped at 100. Hot is 75–100, Warm is 50–74, and Cold is 0–49. Confidence reflects how many qualification fields are available: 9–11 is High, 6–8 is Medium, and 0–5 is Low. Missing information reduces completeness and produces a visible negative factor; it never gets silently guessed.
-
-The sample lead is expected to score 100 / Hot / High confidence. The test suite also covers a sparse lead and a qualified non-decision-maker.
+Classification thresholds are Hot = 75–100, Warm = 50–74, and Cold = 0–49. Confidence is High for 9–11 known qualification fields, Medium for 6–8, and Low for 0–5. Missing information reduces the completeness score and creates a visible negative factor; it is never silently guessed.
 
 ## AI boundary
 
-The deterministic engine in `src/scoring.js` owns the score, classification, factors, and action. The browser calls `/api/score`, so the UI and tests use the same source of truth. The `/api/explanation` endpoint optionally calls an OpenAI-compatible chat-completions API only to rewrite the structured result as a short explanation. Set `GEMINI_API_KEY` in a local `.env` file to enable Gemini explanations. `GEMINI_MODEL` is optional and defaults to `gemini-2.5-flash`. The `.env` file is ignored by Git and is never sent to the browser. Without a key, a deterministic explanation is returned.
+The browser calls `/api/score`, so the UI and tests share the same scoring source of truth. `/api/explanation` sends the lead and already-computed result to Gemini for a short analysis. Gemini is instructed to explain one positive signal and one gap; it cannot change the score, classification, factors, or recommended action. The server validates the response and uses a concise deterministic fallback if Gemini is unavailable or returns malformed output.
+
+To enable Gemini locally, create `.env` from `.env.example`:
+
+```env
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+`.env` is ignored by Git and is never sent to the browser. Never commit API keys.
