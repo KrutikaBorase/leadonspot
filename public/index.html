@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>LeadOnSpot | Explainable lead scoring</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <a class="brand" href="/"><span class="brand-mark">L</span><span>LeadOnSpot</span></a>
+        <span class="topbar-note">Sales qualification workspace</span>
+      </header>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">AI-assisted, rule-led</p>
+          <h1>Know who deserves<br><em>your next call.</em></h1>
+          <p class="hero-copy">A transparent lead score built from buying intent, decision authority, company potential, and contactability.</p>
+        </div>
+        <div class="hero-stat"><strong>0—100</strong><span>explainable score</span></div>
+      </section>
+      <section class="workspace">
+        <form id="lead-form" class="card form-card">
+          <div class="card-heading"><div><p class="eyebrow">Step 01</p><h2>Lead details</h2></div><button id="sample-button" class="text-button" type="button">Load sample lead</button></div>
+          <p class="muted">Add what you know. Missing fields reduce confidence, never create a made-up score.</p>
+          <div class="form-grid">
+            <label>Full name<input name="name" placeholder="e.g. Rahul Sharma"></label>
+            <label>Company name<input name="companyName" placeholder="e.g. ABC Technologies"></label>
+            <label>Website<input name="website" placeholder="e.g. abctechnologies.com"></label>
+            <label>Job title<input name="jobTitle" placeholder="e.g. Founder"></label>
+            <label>Industry<input name="industry" placeholder="e.g. IT Services"></label>
+            <label>Company location<input name="companyLocation" placeholder="e.g. Bangalore"></label>
+            <label>Company size<select name="companySize"><option value="">Select size</option><option>1-10 Employees</option><option>11-50 Employees</option><option>50-100 Employees</option><option>101-500 Employees</option><option>500+ Employees</option></select></label>
+            <label>Lead source<select name="leadSource"><option value="">Select source</option><option>Website</option><option>Demo request</option><option>Contact sales</option><option>Referral</option><option>Cold outreach</option><option>Event</option></select></label>
+            <label class="wide">What do they need?<textarea name="requirement" rows="3" placeholder="Describe the problem or product they are looking for"></textarea></label>
+            <label>Email<input name="email" type="email" placeholder="rahul@example.com"></label>
+            <label>Phone<input name="phone" type="tel" placeholder="+91 9876543210"></label>
+          </div>
+          <button class="primary-button" type="submit"><span>Calculate lead score</span><span>→</span></button>
+        </form>
+        <aside id="results" class="card results-card empty-state">
+          <div class="empty-icon">✦</div><h2>Your score will appear here</h2><p>Complete the lead details and we’ll show the score, reasoning, and a practical next step.</p>
+        </aside>
+      </section>
+      <section class="method">
+        <div><p class="eyebrow">How it works</p><h2>Every point has a reason.</h2></div>
+        <div class="method-grid">
+          <article><span>20</span><h3>Profile completeness</h3><p>Rewards usable contact and company context.</p></article>
+          <article><span>35</span><h3>Intent & requirement</h3><p>Prioritises a stated need and high-intent sources.</p></article>
+          <article><span>20</span><h3>Decision authority</h3><p>Recognises founders and senior buying roles.</p></article>
+          <article><span>15</span><h3>Potential & reachability</h3><p>Includes company size, email, and phone.</p></article>
+        </div>
+      </section>
+      <footer><span>LeadOnSpot</span><span>Deterministic score · AI-assisted explanation</span></footer>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
