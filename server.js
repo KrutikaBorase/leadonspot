@@ -26,29 +26,29 @@ const contentTypes = {
 };
 
 function localExplanation(lead, result) {
-  const positives = result.positiveFactors.length ? result.positiveFactors.join("; ") : "No strong positive signals were provided.";
-  const negatives = result.negativeFactors.length ? result.negativeFactors.join("; ") : "No material risk signals were identified.";
-  return `The lead scored ${result.score}/100 and is classified as ${result.classification}. ${result.qualityAssessment} The strongest positive signals are ${positives} The main gaps are ${negatives} ${result.recommendedNextAction}`;
+  const positive = result.positiveFactors[0]?.replace(/\s*\(\+\d+\)$/, "").toLowerCase() || "limited qualification detail";
+  const negative = result.negativeFactors[0]?.replace(/\s*\(-\d+\)$/, "").toLowerCase() || "no material gaps";
+  return `This ${result.classification.toLowerCase()} lead scored ${result.score}/100, supported by ${positive}. Improve the lead by addressing ${negative}.`;
 }
 
 async function createExplanation(lead, result) {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return localExplanation(lead, result);
+  if (!apiKey) return { text: localExplanation(lead, result), provider: "Deterministic fallback" };
   const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: "You explain a deterministic sales lead score. Never change the score, classification, factors, or next action. Use two concise, human-sounding sentences." }]
-      },
-      generationConfig: { temperature: 0.2, maxOutputTokens: 180 },
-      contents: [{ role: "user", parts: [{ text: JSON.stringify({ lead, result }) }] }]
+      generationConfig: { temperature: 0.2, maxOutputTokens: 180, responseMimeType: "text/plain" },
+      contents: [{ role: "user", parts: [{ text: `You are a sales qualification analyst. Analyse this lead using only the supplied facts. Write exactly two complete, human-sounding sentences and no heading. Maximum 45 words. Explain why the classification fits, mention one positive signal and one gap. Never change the score or invent facts.\n\nLead: ${JSON.stringify(lead)}\nComputed deterministic result: ${JSON.stringify(result)}` }] }]
     })
   });
   if (!response.ok) throw new Error(`Gemini request failed with status ${response.status}`);
   const payload = await response.json();
-  return payload.candidates?.[0]?.content?.parts?.map((part) => part.text).join("").trim() || localExplanation(lead, result);
+  const text = payload.candidates?.[0]?.content?.parts?.map((part) => part.text).join("").trim();
+  const wordCount = text?.split(/\s+/).filter(Boolean).length || 0;
+  if (!text || wordCount < 15 || !/[.!?]$/.test(text)) return { text: localExplanation(lead, result), provider: "Deterministic fallback" };
+  return { text, provider: "Gemini" };
 }
 
 async function serveStatic(request, response) {
@@ -82,7 +82,7 @@ const server = createServer(async (request, response) => {
       } else {
         const explanation = await createExplanation(body.lead, body.result);
         response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
-        response.end(JSON.stringify({ explanation }));
+        response.end(JSON.stringify({ explanation: explanation.text, provider: explanation.provider }));
       }
     } catch (error) {
       response.writeHead(request.url === "/api/score" ? 400 : 502, { "Content-Type": "application/json; charset=utf-8" });
