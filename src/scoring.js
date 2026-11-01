@@ -1,4 +1,5 @@
 const FIELD_LABELS = {
+  name: "Full name",
   companyName: "Company name",
   website: "Website",
   jobTitle: "Job title",
@@ -86,18 +87,12 @@ export function scoreLead(lead = {}) {
     negativeFactors.push("Industry or location context is incomplete (-5)");
   }
 
-  if (has(normalized.email)) {
-    score += 3;
-    positiveFactors.push("Reachable email provided (+3)");
-  } else {
-    negativeFactors.push("Email is missing (-3)");
-  }
-  if (has(normalized.phone)) {
-    score += 2;
-    positiveFactors.push("Phone number provided (+2)");
-  } else {
-    negativeFactors.push("Phone number is missing (-2)");
-  }
+  const contactPoints = (has(normalized.email) ? 3 : 0) + (has(normalized.phone) ? 2 : 0);
+  score += contactPoints;
+  if (has(normalized.email)) positiveFactors.push("Reachable email provided (+3)");
+  else negativeFactors.push("Email is missing (-3)");
+  if (has(normalized.phone)) positiveFactors.push("Phone number provided (+2)");
+  else negativeFactors.push("Phone number is missing (-2)");
 
   score = Math.max(0, Math.min(100, score));
   const classification = score >= 75 ? "Hot" : score >= 50 ? "Warm" : "Cold";
@@ -119,7 +114,17 @@ export function scoreLead(lead = {}) {
     qualityAssessment,
     positiveFactors,
     negativeFactors,
-    scoringExplanation: `Score is built from profile completeness (20), requirement and intent (35), decision authority (20), company potential (10), and contactability (5).`,
+    scoringExplanation: `Score is built from profile completeness (${completenessPoints}/20), requirement (20), source intent (up to 15), decision authority (up to 20), company size (10), web presence (5), context (5), and contactability (${contactPoints}/5).`,
+    scoreBreakdown: [
+      { label: "Profile completeness", score: completenessPoints, max: 20 },
+      { label: "Requirement clarity", score: has(normalized.requirement) ? 20 : 0, max: 20 },
+      { label: "Lead source intent", score: HIGH_INTENT_SOURCES.some((signal) => source.includes(signal)) ? 15 : has(source) ? 8 : 0, max: 15 },
+      { label: "Decision authority", score: ROLE_SIGNALS.some((signal) => role.includes(signal)) ? 20 : has(role) ? 10 : 0, max: 20 },
+      { label: "Company size", score: sizePoints, max: 10 },
+      { label: "Website", score: has(normalized.website) ? 5 : 0, max: 5 },
+      { label: "Industry & location", score: has(normalized.industry) && has(normalized.companyLocation) ? 5 : 0, max: 5 },
+      { label: "Contactability", score: contactPoints, max: 5 }
+    ],
     confidence,
     recommendedNextAction
   };

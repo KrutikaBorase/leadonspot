@@ -23,6 +23,8 @@ test("scores the sample lead consistently as hot", () => {
   assert.equal(first.score, 100);
   assert.equal(first.classification, "Hot");
   assert.equal(first.confidence, "High");
+  assert.equal(first.scoreBreakdown.reduce((total, item) => total + item.max, 0), 100);
+  assert.equal(first.scoreBreakdown.reduce((total, item) => total + item.score, 0), first.score);
 });
 
 test("handles a sparse lead without throwing", () => {
@@ -31,6 +33,7 @@ test("handles a sparse lead without throwing", () => {
   assert.equal(result.classification, "Cold");
   assert.equal(result.confidence, "Low");
   assert.ok(result.negativeFactors.length > 0);
+  assert.equal(result.scoreBreakdown.length, 8);
 });
 
 test("a qualified but not decision-maker lead is warm", () => {

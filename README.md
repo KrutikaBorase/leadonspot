@@ -32,7 +32,7 @@ The score is intentionally computed in code rather than delegated to an LLM:
 | Industry and location context | 5 |
 | **Total** | **100** |
 
-The score is capped at 100. Hot is 75–100, Warm is 50–74, and Cold is 0–49. Confidence reflects how many qualification fields are available: 9–10 is High, 6–8 is Medium, and 0–5 is Low. Missing information reduces completeness and produces a visible negative factor; it never gets silently guessed.
+The score is capped at 100. Hot is 75–100, Warm is 50–74, and Cold is 0–49. Confidence reflects how many qualification fields are available: 9–11 is High, 6–8 is Medium, and 0–5 is Low. Missing information reduces completeness and produces a visible negative factor; it never gets silently guessed.
 
 The sample lead is expected to score 100 / Hot / High confidence. The test suite also covers a sparse lead and a qualified non-decision-maker.
 

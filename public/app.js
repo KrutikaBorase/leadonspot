@@ -2,8 +2,9 @@ const form = document.querySelector("#lead-form");
 const results = document.querySelector("#results");
 const sampleButton = document.querySelector("#sample-button");
 const submitButton = document.querySelector("#submit-button");
+const resetButton = document.querySelector("#reset-button");
 const fieldCount = document.querySelector("#field-count");
-const scoredFields = ["companyName", "website", "jobTitle", "industry", "companyLocation", "companySize", "leadSource", "requirement", "email", "phone"];
+const scoredFields = ["name", "companyName", "website", "jobTitle", "industry", "companyLocation", "companySize", "leadSource", "requirement", "email", "phone"];
 
 const sampleLead = {
   name: "Rahul Sharma",
@@ -33,23 +34,17 @@ async function render(lead) {
     submitButton.querySelector("span").textContent = "Calculate lead score";
     return;
   }
-  const quality = result.classification === "Hot"
-    ? "Strong fit with clear buying intent and enough detail for a timely sales conversation."
-    : result.classification === "Warm"
-      ? "Promising lead, but a short discovery conversation is needed to confirm fit and urgency."
-      : "Early-stage lead with limited qualification signals; nurture before investing high-touch sales time.";
-  const action = result.classification === "Hot"
-    ? "Contact within 1 business hour and offer a tailored CRM walkthrough."
-    : result.classification === "Warm"
-      ? "Follow up within 1 business day to confirm budget, timeline, and decision process."
-      : "Send a useful educational follow-up and request the missing qualification details.";
+  const quality = result.qualityAssessment;
+  const action = result.recommendedNextAction.replace(/^Recommended next action:\s*/i, "");
   const positives = [];
   const negatives = [];
   if (result.positiveFactors.length) positives.push(...result.positiveFactors);
   if (result.negativeFactors.length) negatives.push(...result.negativeFactors);
   results.className = "card results-card";
+  const breakdown = result.scoreBreakdown.map((item) => `<div class="breakdown-row"><div><span>${item.label}</span><b>${item.score}/${item.max}</b></div><i><em style="width:${item.score / item.max * 100}%"></em></i></div>`).join("");
   results.innerHTML = `<div class="score-header"><div><div class="score-number">${result.score}<small>/100</small></div><div class="muted">Confidence: ${result.confidence}</div></div><span class="badge ${result.classification.toLowerCase()}">${result.classification} lead</span></div>
     <div class="meter"><i style="width:${result.score}%"></i></div>
+    <div class="result-section"><h3>Score breakdown</h3><div class="breakdown">${breakdown}</div></div>
     <div class="result-section"><h3>Quality assessment</h3><p>${quality}</p></div>
     <div class="result-section"><h3>Positive signals</h3><ul class="factor-list">${positives.map((item) => `<li>${item}</li>`).join("") || "<li>None yet</li>"}</ul></div>
     <div class="result-section"><h3>Watch-outs</h3><ul class="factor-list negative">${negatives.map((item) => `<li>${item}</li>`).join("") || "<li>None identified</li>"}</ul></div>
@@ -79,7 +74,7 @@ function readForm() {
 function updateFieldCount() {
   const lead = readForm();
   const count = scoredFields.filter((field) => lead[field]?.trim()).length;
-  fieldCount.textContent = `${count} / 10 fields`;
+  fieldCount.textContent = `${count} / 11 fields`;
 }
 
 function fillForm(lead) {
@@ -99,4 +94,10 @@ sampleButton.addEventListener("click", () => {
   fillForm(sampleLead);
   render(sampleLead);
   updateFieldCount();
+});
+resetButton.addEventListener("click", () => {
+  form.reset();
+  updateFieldCount();
+  results.className = "card results-card empty-state";
+  results.innerHTML = '<div class="empty-icon">✦</div><h2>Your score will appear here</h2><p>Complete the lead details and we’ll show the score, reasoning, and a practical next step.</p>';
 });
