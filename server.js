@@ -28,7 +28,9 @@ const contentTypes = {
 function localExplanation(lead, result) {
   const positive = result.positiveFactors[0]?.replace(/\s*\(\+\d+\)$/, "").toLowerCase() || "limited qualification detail";
   const negative = result.negativeFactors[0]?.replace(/\s*\(-\d+\)$/, "").toLowerCase() || "no material gaps";
-  return `This ${result.classification.toLowerCase()} lead scored ${result.score}/100, supported by ${positive}. Improve the lead by addressing ${negative}.`;
+  return negative === "no material gaps"
+    ? `This ${result.classification.toLowerCase()} lead scored ${result.score}/100, supported by ${positive}. No material qualification gaps were identified.`
+    : `This ${result.classification.toLowerCase()} lead scored ${result.score}/100, supported by ${positive}. Improve the lead by addressing ${negative}.`;
 }
 
 async function createExplanation(lead, result) {
@@ -39,13 +41,31 @@ async function createExplanation(lead, result) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      generationConfig: { temperature: 0.2, maxOutputTokens: 180, responseMimeType: "text/plain" },
-      contents: [{ role: "user", parts: [{ text: `You are a sales qualification analyst. Analyse this lead using only the supplied facts. Write exactly two complete, human-sounding sentences and no heading. Maximum 45 words. Explain why the classification fits, mention one positive signal and one gap. Never change the score or invent facts.\n\nLead: ${JSON.stringify(lead)}\nComputed deterministic result: ${JSON.stringify(result)}` }] }]
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 120,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "OBJECT",
+          properties: {
+            analysis: { type: "STRING", description: "Two complete concise sentences explaining the classification, one positive signal, and one gap." }
+          },
+          required: ["analysis"]
+        }
+      },
+      contents: [{ role: "user", parts: [{ text: `You are a sales qualification analyst. Use only these supplied facts. Return JSON with one key named analysis. Its value must be exactly two complete, human-sounding sentences, maximum 45 words. Explain why the classification fits, mention one positive signal and one gap. Never change the score or invent facts.\n\nLead: ${JSON.stringify(lead)}\nComputed deterministic result: ${JSON.stringify(result)}` }] }]
     })
   });
   if (!response.ok) throw new Error(`Gemini request failed with status ${response.status}`);
   const payload = await response.json();
-  const text = payload.candidates?.[0]?.content?.parts?.map((part) => part.text).join("").trim();
+  const rawText = payload.candidates?.[0]?.content?.parts?.map((part) => part.text).join("").trim();
+  let text;
+  try {
+    const jsonText = rawText?.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
+    text = JSON.parse(jsonText)?.analysis?.trim();
+  } catch {
+    text = "";
+  }
   const wordCount = text?.split(/\s+/).filter(Boolean).length || 0;
   if (!text || wordCount < 15 || !/[.!?]$/.test(text)) return { text: localExplanation(lead, result), provider: "Deterministic fallback" };
   return { text, provider: "Gemini" };
